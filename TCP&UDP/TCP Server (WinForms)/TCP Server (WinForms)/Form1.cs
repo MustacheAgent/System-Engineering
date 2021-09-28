@@ -111,15 +111,22 @@ namespace TCP_Server__WinForms_
 
         private void AcceptClientCallback(IAsyncResult ar)
         {
-            TcpListener listener = (TcpListener)ar.AsyncState;
+            TcpListener listener = ar.AsyncState as TcpListener;
 
-            TcpClient client = listener.EndAcceptTcpClient(ar);
+            try
+            {
+                TcpClient client = listener.EndAcceptTcpClient(ar);
 
-            Log("Принят запрос от на подключение: " + ((IPEndPoint)client.Client.RemoteEndPoint).Address);
-            SendDataToClient(client, message);
-            Log("Клиенту: " + ((IPEndPoint)client.Client.RemoteEndPoint).Address + " отправлено сообщение: " + message);
+                Log("Принят запрос от на подключение: " + ((IPEndPoint)client.Client.RemoteEndPoint).Address);
+                SendDataToClient(client, message);
+                Log("Клиенту: " + ((IPEndPoint)client.Client.RemoteEndPoint).Address + " отправлено сообщение: " + message);
 
-            tcpClientConnected.Set();
+                tcpClientConnected.Set();
+            }
+            catch(Exception)
+            {
+                return;
+            }
         }
 
         private void UpdateLog(string update)
@@ -131,7 +138,7 @@ namespace TCP_Server__WinForms_
         {
             StringBuilder logBuilder = new();
 
-            logBuilder.Append("\n" + DateTime.Now.ToString() + ": " + log + "\n");
+            logBuilder.Append("\n" + DateTime.Now.ToString() + ": " + log);
 
             Invoke(new Action<string>(UpdateLog), logBuilder.ToString());
 
