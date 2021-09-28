@@ -31,6 +31,8 @@ namespace TCP_Server__WinForms_
                     server.Start();
                     BtnConnect.Text = "Остановить";
 
+                    TxtAddress.ReadOnly = TxtPort.ReadOnly = true;
+
                     TimerStatus.Start();
                 }
                 catch (SocketException ex)
@@ -49,6 +51,8 @@ namespace TCP_Server__WinForms_
                     server.Stop();
                     server = null;
                     BtnConnect.Text = "Запустить";
+
+                    TxtAddress.ReadOnly = TxtPort.ReadOnly = false;
 
                     TimerStatus.Stop();
                 }
