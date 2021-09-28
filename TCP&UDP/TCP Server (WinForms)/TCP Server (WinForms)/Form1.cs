@@ -2,6 +2,8 @@
 using System.Net;
 using System.Net.NetworkInformation;
 using System.Net.Sockets;
+using System.Text;
+using System.Threading;
 using System.Windows.Forms;
 
 namespace TCP_Server__WinForms_
@@ -9,6 +11,9 @@ namespace TCP_Server__WinForms_
     public partial class TCPServer : Form
     {
         TcpListener server;
+        string message = "курлык";
+
+        public ManualResetEvent tcpClientConnected;
 
         public TCPServer()
         {
@@ -18,6 +23,8 @@ namespace TCP_Server__WinForms_
             
             BarServer.Items.Add(new ToolStripStatusLabel());
             BarServer.Items[0].Text = "недоступен";
+
+            tcpClientConnected = new(false);
             //server = new();
         }
 
@@ -30,6 +37,7 @@ namespace TCP_Server__WinForms_
                     server = new(IPAddress.Parse(TxtAddress.Text), int.Parse(TxtPort.Text));
                     server.Start();
                     BtnConnect.Text = "Остановить";
+                    server.BeginAcceptTcpClient(AcceptClientCallback, server);
 
                     TxtAddress.ReadOnly = TxtPort.ReadOnly = true;
 
@@ -90,7 +98,6 @@ namespace TCP_Server__WinForms_
                 }
             }
 
-
             return false;
         }
 
@@ -100,6 +107,49 @@ namespace TCP_Server__WinForms_
                 BarServer.Items[0].Text = "Доступен";
             else
                 BarServer.Items[0].Text = "Недоступен";
+        }
+
+        private void AcceptClientCallback(IAsyncResult ar)
+        {
+            TcpListener listener = (TcpListener)ar.AsyncState;
+
+            TcpClient client = listener.EndAcceptTcpClient(ar);
+
+            Log("Принят запрос от на подключение: " + ((IPEndPoint)client.Client.RemoteEndPoint).Address);
+            SendDataToClient(client, message);
+            Log("Клиенту: " + ((IPEndPoint)client.Client.RemoteEndPoint).Address + " отправлено сообщение: " + message);
+
+            tcpClientConnected.Set();
+        }
+
+        private void UpdateLog(string update)
+        {
+            TxtRichLog.AppendText(update);
+        }
+
+        private void Log(string log)
+        {
+            StringBuilder logBuilder = new();
+
+            logBuilder.Append("\n" + DateTime.Now.ToString() + ": " + log + "\n");
+
+            Invoke(new Action<string>(UpdateLog), logBuilder.ToString());
+
+            //TxtRichLog.Text = logBuilder.ToString();
+        }
+
+        private void SendDataToClient(TcpClient client, string message)
+        {
+            // получаем сетевой поток для чтения и записи
+            NetworkStream stream = client.GetStream();
+
+            // преобразуем сообщение в массив байтов
+            byte[] data = Encoding.UTF8.GetBytes(message);
+
+            // отправка сообщения
+            stream.Write(data, 0, data.Length);
+
+            //stream.Close();
         }
     }
 }
