@@ -15,7 +15,7 @@ namespace TCP_Server__WinForms_
             InitializeComponent();
             TxtAddress.Text = GetLocalIP();
             TxtPort.Text = "8080";
-            TimerStatus.Start();
+            
             BarServer.Items.Add(new ToolStripStatusLabel());
             BarServer.Items[0].Text = "недоступен";
             //server = new();
@@ -30,6 +30,8 @@ namespace TCP_Server__WinForms_
                     server = new(IPAddress.Parse(TxtAddress.Text), int.Parse(TxtPort.Text));
                     server.Start();
                     BtnConnect.Text = "Остановить";
+
+                    TimerStatus.Start();
                 }
                 catch (SocketException ex)
                 {
@@ -47,6 +49,8 @@ namespace TCP_Server__WinForms_
                     server.Stop();
                     server = null;
                     BtnConnect.Text = "Запустить";
+
+                    TimerStatus.Stop();
                 }
                 catch (SocketException ex)
                 {
