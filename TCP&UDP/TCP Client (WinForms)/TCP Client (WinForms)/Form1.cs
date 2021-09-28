@@ -9,25 +9,40 @@ namespace TCP_Client__WinForms_
     public partial class TCPClient : Form
     {
         TcpClient client;
+
+        Socket TcpClient;
+
         public TCPClient()
         {
             InitializeComponent();
-            client = new();
             TxtAddress.Text = GetLocalIP();
             TxtPort.Text = "8080";
-            TimerStatus.Start();
             BarServer.Items.Add(new ToolStripStatusLabel());
             BarServer.Items[0].Text = "Нет подключения";
         }
 
         private void BtnConnect_Click(object sender, EventArgs e)
         {
+            if (client == null)
+                client = new();
+
             if (!client.Connected)
             {
                 try
                 {
                     client.Connect(TxtAddress.Text, int.Parse(TxtPort.Text));
+
+                    NetworkStream stream = client.GetStream();
+
+                    byte[] buffer = new byte[256];
+
+                    stream.BeginRead(buffer, 0, buffer.Length, )
+
                     BtnConnect.Text = "Отключиться";
+
+                    TxtAddress.ReadOnly = TxtPort.ReadOnly = false;
+
+                    //TimerStatus.Start();
                 }
                 catch (SocketException ex)
                 {
@@ -42,8 +57,12 @@ namespace TCP_Client__WinForms_
             {
                 try
                 {
-                    client.Close();
+                    //client.Close();
                     BtnConnect.Text = "Подключиться";
+
+                    TxtAddress.ReadOnly = TxtPort.ReadOnly = true;
+
+                    TimerStatus.Stop();
                 }
                 catch (SocketException ex)
                 {

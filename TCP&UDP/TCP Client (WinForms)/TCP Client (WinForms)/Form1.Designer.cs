@@ -132,6 +132,7 @@ namespace TCP_Client__WinForms_
             // 
             // TimerStatus
             // 
+            this.TimerStatus.Interval = 1000;
             this.TimerStatus.Tick += new System.EventHandler(this.TimerStatus_Tick);
             // 
             // BarServer
