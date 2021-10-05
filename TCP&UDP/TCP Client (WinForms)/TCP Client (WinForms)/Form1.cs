@@ -8,7 +8,7 @@ namespace TCP_Client__WinForms_
 {
     public partial class TCPClient : Form
     {
-        TcpClient client;
+        Client client;
 
         Socket TcpClient;
 
@@ -31,12 +31,6 @@ namespace TCP_Client__WinForms_
                 try
                 {
                     client.Connect(TxtAddress.Text, int.Parse(TxtPort.Text));
-
-                    NetworkStream stream = client.GetStream();
-
-                    byte[] buffer = new byte[256];
-
-                    stream.BeginRead(buffer, 0, buffer.Length, )
 
                     BtnConnect.Text = "Отключиться";
 
