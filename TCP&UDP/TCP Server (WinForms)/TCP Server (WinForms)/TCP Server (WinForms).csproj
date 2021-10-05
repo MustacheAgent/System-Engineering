@@ -7,4 +7,8 @@
     <UseWindowsForms>true</UseWindowsForms>
   </PropertyGroup>
 
+  <ItemGroup>
+    <None Remove="Form1.cs~RF25042659.TMP" />
+  </ItemGroup>
+
 </Project>

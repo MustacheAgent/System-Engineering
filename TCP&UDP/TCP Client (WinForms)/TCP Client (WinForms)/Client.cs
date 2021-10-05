@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Net.Sockets;
+using System.Windows.Forms;
 
 namespace TCP_Client__WinForms_
 {
@@ -22,7 +23,8 @@ namespace TCP_Client__WinForms_
 
         public Client()
         {
-            
+            _client = new();
+            IsConnected = false;
         }
 
         public void Connect(string address, int port)
@@ -45,13 +47,13 @@ namespace TCP_Client__WinForms_
                 IsConnected = true;
                 OnConnected(new ConnectedToServerEventArgs());
             }
-            catch(SocketException e)
+            catch(SocketException ex)
             {
-
+                MessageBox.Show(ex.Message, "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
-            catch(Exception e)
+            catch(Exception ex)
             {
-
+                MessageBox.Show(ex.Message, "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
     }

@@ -151,6 +151,7 @@ namespace TCP_Server__WinForms_
             this.BtnSend.TabIndex = 8;
             this.BtnSend.Text = "Отправить";
             this.BtnSend.UseVisualStyleBackColor = true;
+            this.BtnSend.Click += new System.EventHandler(this.BtnSend_Click);
             // 
             // BarServer
             // 

@@ -10,8 +10,6 @@ namespace TCP_Client__WinForms_
     {
         Client client;
 
-        Socket TcpClient;
-
         public TCPClient()
         {
             InitializeComponent();
@@ -26,7 +24,7 @@ namespace TCP_Client__WinForms_
             if (client == null)
                 client = new();
 
-            if (!client.Connected)
+            if (!client.IsConnected)
             {
                 try
                 {

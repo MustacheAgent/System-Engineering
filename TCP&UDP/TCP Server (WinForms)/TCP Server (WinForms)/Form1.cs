@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Net;
+using System.Collections.Generic;
 using System.Net.NetworkInformation;
 using System.Net.Sockets;
 using System.Text;
@@ -11,20 +12,25 @@ namespace TCP_Server__WinForms_
     public partial class TCPServer : Form
     {
         TcpListener server;
-        string message = "курлык";
+        //string message = "курлык";
 
-        public ManualResetEvent tcpClientConnected;
+        List<TcpClient> clients;
+
+        //public ManualResetEvent tcpClientConnected;
 
         public TCPServer()
         {
             InitializeComponent();
+
+            clients = new();
+
             TxtAddress.Text = GetLocalIP();
             TxtPort.Text = "8080";
             
             BarServer.Items.Add(new ToolStripStatusLabel());
             BarServer.Items[0].Text = "недоступен";
 
-            tcpClientConnected = new(false);
+            //tcpClientConnected = new(false);
             //server = new();
         }
 
@@ -116,12 +122,11 @@ namespace TCP_Server__WinForms_
             try
             {
                 TcpClient client = listener.EndAcceptTcpClient(ar);
+                clients.Add(client);
 
                 Log("Принят запрос от на подключение: " + ((IPEndPoint)client.Client.RemoteEndPoint).Address);
-                SendDataToClient(client, message);
-                Log("Клиенту: " + ((IPEndPoint)client.Client.RemoteEndPoint).Address + " отправлено сообщение: " + message);
 
-                tcpClientConnected.Set();
+                //tcpClientConnected.Set();
             }
             catch(Exception)
             {
@@ -137,12 +142,8 @@ namespace TCP_Server__WinForms_
         private void Log(string log)
         {
             StringBuilder logBuilder = new();
-
             logBuilder.Append("\n" + DateTime.Now.ToString() + ": " + log);
-
             Invoke(new Action<string>(UpdateLog), logBuilder.ToString());
-
-            //TxtRichLog.Text = logBuilder.ToString();
         }
 
         private void SendDataToClient(TcpClient client, string message)
@@ -157,6 +158,16 @@ namespace TCP_Server__WinForms_
             stream.Write(data, 0, data.Length);
 
             //stream.Close();
+        }
+
+        private void BtnSend_Click(object sender, EventArgs e)
+        {
+            string message = TxtRichMessage.Text;
+            foreach(var client in clients)
+            {
+                SendDataToClient(client, message);
+                Log("Клиенту: " + ((IPEndPoint)client.Client.RemoteEndPoint).Address + " отправлено сообщение: " + message);
+            }
         }
     }
 }
