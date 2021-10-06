@@ -29,7 +29,7 @@ namespace TCP_Client__WinForms_
 
         public void Connect(string address, int port)
         {
-            _client.BeginConnect(address, port, ConnectCallback, _client);
+            _client.BeginConnect(address, port, new AsyncCallback(ConnectCallback), _client);
         }
 
         public event ConnectedToServerEventHandler ConnectedToServerEvent;
@@ -42,7 +42,7 @@ namespace TCP_Client__WinForms_
         {
             try
             {
-                _client = ar as TcpClient;
+                _client = (TcpClient)ar;
                 _client.EndConnect(ar);
                 IsConnected = true;
                 OnConnected(new ConnectedToServerEventArgs());
