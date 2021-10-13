@@ -46,7 +46,7 @@ namespace AsyncTcpLib
             {
                 _client.BeginConnect(new IPEndPoint(IPAddress.Parse(address), port), new AsyncCallback(ConnectCallback), null);
             }
-            catch(SocketException ex)
+            catch(SocketException)
             {
 
             }
@@ -59,7 +59,7 @@ namespace AsyncTcpLib
                 byte[] byteMessage = Encoding.ASCII.GetBytes(message);
                 _client.BeginSend(byteMessage, 0, byteMessage.Length, SocketFlags.None, new AsyncCallback(SendCallback), null);
             }
-            catch(Exception ex)
+            catch(Exception)
             {
 
             }

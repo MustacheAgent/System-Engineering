@@ -11,4 +11,8 @@
     <None Remove="Form1.cs~RF25042659.TMP" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\..\AsyncTcpLib\AsyncTcpLib\AsyncTcpLib.csproj" />
+  </ItemGroup>
+
 </Project>
