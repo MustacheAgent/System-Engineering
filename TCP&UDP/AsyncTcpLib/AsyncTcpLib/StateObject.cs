@@ -3,7 +3,7 @@ using System.Text;
 
 namespace AsyncTcpLib
 {
-    public class StateObject
+    internal class StateObject
     {     
         public int bufferSize;
 

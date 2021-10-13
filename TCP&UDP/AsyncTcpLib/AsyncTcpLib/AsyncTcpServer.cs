@@ -40,6 +40,7 @@ namespace AsyncTcpLib
                 _client = _server.EndAccept(ar);
                 _buffer = new byte[_client.ReceiveBufferSize];
                 _client.BeginReceive(_buffer, 0, _buffer.Length, SocketFlags.None, new AsyncCallback(ReceiveCallback), null);
+                _server.BeginAccept(new AsyncCallback(AcceptCallback), null);
             }
             catch(SocketException ex)
             {
@@ -52,6 +53,9 @@ namespace AsyncTcpLib
             try
             {
                 int receivedBytes = _client.EndReceive(ar);
+
+                if (receivedBytes == 0) return;
+
                 Array.Resize(ref _buffer, receivedBytes);
                 string text = Encoding.ASCII.GetString(_buffer);
                 // ВЫЗВАТЬ СОБЫТИЕ ПОЛУЧЕНИЯ ДАННЫХ
