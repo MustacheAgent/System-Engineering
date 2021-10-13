@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Net;
 using System.Net.Sockets;
+using System.Text;
 using System.Windows.Forms;
 
 namespace AsyncTcpLib
@@ -33,11 +35,34 @@ namespace AsyncTcpLib
             }
         }
 
-        public AsyncTcpClient() { }
+        public AsyncTcpClient() 
+        {
+            _client = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+        }
 
         public void Connect(string address, int port)
         {
-            _client.BeginConnect(address, port, new AsyncCallback(ConnectCallback), _client);
+            try
+            {
+                _client.BeginConnect(new IPEndPoint(IPAddress.Parse(address), port), new AsyncCallback(ConnectCallback), null);
+            }
+            catch(SocketException ex)
+            {
+
+            }
+        }
+
+        public void SendMessage(string message)
+        {
+            try
+            {
+                byte[] byteMessage = Encoding.ASCII.GetBytes(message);
+                _client.BeginSend(byteMessage, 0, byteMessage.Length, SocketFlags.None, new AsyncCallback(SendCallback), null);
+            }
+            catch(Exception ex)
+            {
+
+            }
         }
 
         public event ConnectedToServerEventHandler ConnectedToServerEvent;
@@ -50,9 +75,9 @@ namespace AsyncTcpLib
         {
             try
             {
-                _client = (Socket)ar;
                 _client.EndConnect(ar);
                 IsConnected = true;
+                // ВЫЗВАТЬ СОБЫТИЕ ПРИСОЕДИНЕНИЯ
             }
             catch (SocketException ex)
             {
@@ -62,6 +87,10 @@ namespace AsyncTcpLib
             {
                 MessageBox.Show(ex.Message, "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
+        }
+        private void SendCallback(IAsyncResult ar)
+        {
+            int bytesSent = _client.EndSend(ar);
         }
     }
 }
