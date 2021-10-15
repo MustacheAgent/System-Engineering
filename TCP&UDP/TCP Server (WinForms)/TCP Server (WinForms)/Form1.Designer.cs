@@ -64,6 +64,7 @@ namespace TCP_Server__WinForms_
             this.TxtAddress.Name = "TxtAddress";
             this.TxtAddress.Size = new System.Drawing.Size(100, 23);
             this.TxtAddress.TabIndex = 1;
+            this.TxtAddress.Visible = false;
             // 
             // TxtPort
             // 
@@ -171,6 +172,7 @@ namespace TCP_Server__WinForms_
             // 
             this.TxtRichLog.Location = new System.Drawing.Point(5, 21);
             this.TxtRichLog.Name = "TxtRichLog";
+            this.TxtRichLog.ReadOnly = true;
             this.TxtRichLog.Size = new System.Drawing.Size(397, 96);
             this.TxtRichLog.TabIndex = 5;
             this.TxtRichLog.Text = "";

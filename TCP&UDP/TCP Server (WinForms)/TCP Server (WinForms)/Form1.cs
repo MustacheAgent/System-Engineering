@@ -20,18 +20,20 @@ namespace TCP_Server__WinForms_
             TxtPort.Text = "8080";
             
             BarServer.Items.Add(new ToolStripStatusLabel());
-            BarServer.Items[0].Text = "недоступен";
+            BarServer.Items[0].Text = "Недоступен";
 
-            server = new();
+            server = new(int.Parse(TxtPort.Text));
+            server.OnClientConnected += Server_OnClientConnected;
+            server.OnMessageSent += Server_OnMessageSent;
         }
 
         private void BtnConnect_Click(object sender, EventArgs e)
         {
-            if (!PortInUse(int.Parse(TxtPort.Text)))
+            if (!server.IsListening)
             {
                 try
                 {
-                    server.StartServer(TxtAddress.Text, int.Parse(TxtPort.Text));
+                    server.StartServer();
                     BtnConnect.Text = "Остановить";
                     TxtAddress.ReadOnly = TxtPort.ReadOnly = true;
                     TimerStatus.Start();
@@ -52,7 +54,6 @@ namespace TCP_Server__WinForms_
                     server.StopServer();
                     BtnConnect.Text = "Запустить";
                     TxtAddress.ReadOnly = TxtPort.ReadOnly = false;
-                    TimerStatus.Stop();
                 }
                 catch (SocketException ex)
                 {
@@ -67,7 +68,7 @@ namespace TCP_Server__WinForms_
 
         private void BtnSend_Click(object sender, EventArgs e)
         {
-
+            server.SendMessage(TxtRichMessage.Text);
         }
 
         private string GetLocalIP()
@@ -80,25 +81,19 @@ namespace TCP_Server__WinForms_
             }
         }
 
-        public bool PortInUse(int port)
+        private void Server_OnClientConnected(Socket client)
         {
-            IPGlobalProperties ipProperties = IPGlobalProperties.GetIPGlobalProperties();
-            IPEndPoint[] ipEndPoints = ipProperties.GetActiveTcpListeners();
+            Log("Присоединился клиент: " + client.RemoteEndPoint.ToString());
+        }
 
-            foreach (IPEndPoint endPoint in ipEndPoints)
-            {
-                if (endPoint.Port == port)
-                {
-                    return true;
-                }
-            }
-
-            return false;
+        private void Server_OnMessageSent(Socket client)
+        {
+            Log("Клиенту " + client.RemoteEndPoint.ToString() + "отправлено сообщение: " + TxtRichMessage.Text);
         }
 
         private void TimerStatus_Tick(object sender, EventArgs e)
         {
-            if (server.IsBound)
+            if (server.IsListening)
                 BarServer.Items[0].Text = "Доступен";
             else
                 BarServer.Items[0].Text = "Недоступен";
@@ -112,7 +107,7 @@ namespace TCP_Server__WinForms_
         private void Log(string log)
         {
             StringBuilder logBuilder = new();
-            logBuilder.Append("\n" + DateTime.Now.ToString() + ": " + log);
+            logBuilder.Append(DateTime.Now.ToString() + ": " + log + "\n");
             Invoke(new Action<string>(UpdateLog), logBuilder.ToString());
         }
     }

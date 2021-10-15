@@ -3,12 +3,14 @@ using System.Windows.Forms;
 using System.Net.Sockets;
 using System.Net;
 using System.Net.NetworkInformation;
+using AsyncTcpLib;
+using System.Text;
 
 namespace TCP_Client__WinForms_
 {
     public partial class TCPClient : Form
     {
-        Client client;
+        AsyncTcpClient client;
 
         public TCPClient()
         {
@@ -17,24 +19,21 @@ namespace TCP_Client__WinForms_
             TxtPort.Text = "8080";
             BarServer.Items.Add(new ToolStripStatusLabel());
             BarServer.Items[0].Text = "Нет подключения";
+
+            client = new();
+            client.OnMessageReceived += Client_OnMessageReceived;
         }
 
         private void BtnConnect_Click(object sender, EventArgs e)
         {
-            if (client == null)
-                client = new();
-
             if (!client.IsConnected)
             {
                 try
                 {
                     client.Connect(TxtAddress.Text, int.Parse(TxtPort.Text));
-
                     BtnConnect.Text = "Отключиться";
-
                     TxtAddress.ReadOnly = TxtPort.ReadOnly = false;
-
-                    //TimerStatus.Start();
+                    TimerStatus.Start();
                 }
                 catch (SocketException ex)
                 {
@@ -49,12 +48,9 @@ namespace TCP_Client__WinForms_
             {
                 try
                 {
-                    //client.Close();
+                    client.Disconnect();
                     BtnConnect.Text = "Подключиться";
-
                     TxtAddress.ReadOnly = TxtPort.ReadOnly = true;
-
-                    TimerStatus.Stop();
                 }
                 catch (SocketException ex)
                 {
@@ -77,6 +73,18 @@ namespace TCP_Client__WinForms_
             }
         }
 
+        private void UpdateLog(string update)
+        {
+            TxtRichMessage.AppendText(update);
+        }
+
+        private void Log(string log)
+        {
+            StringBuilder logBuilder = new();
+            logBuilder.Append(DateTime.Now.ToString() + ": " + log + "\n");
+            Invoke(new Action<string>(UpdateLog), logBuilder.ToString());
+        }
+
         private bool Ping(string address)
         {
             PingReply pingReply;
@@ -87,10 +95,15 @@ namespace TCP_Client__WinForms_
 
         private void TimerStatus_Tick(object sender, EventArgs e)
         {
-            if (Ping(TxtAddress.Text))
+            if (client.IsConnected)
                 BarServer.Items[0].Text = "Есть подключение";
             else
                 BarServer.Items[0].Text = "Нет подключения";
+        }
+
+        private void Client_OnMessageReceived(Socket server, string message)
+        {
+            Log("От сервера " + server.RemoteEndPoint.ToString() + "получено сообщение: " + message);
         }
     }
 }

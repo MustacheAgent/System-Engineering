@@ -8,47 +8,60 @@ namespace AsyncTcpLib
 {
     public class AsyncTcpClient
     {
-        private Socket _client;
-        private bool _connected;
+        private Socket _server;
+        private byte[] _buffer;
 
         public bool IsConnected
         {
-            get
-            {
-                return _connected;
-            }
-            private set
-            {
-                _connected = value;
-            }
+            get; private set;
         }
 
-        public Socket Socket
+        public IPEndPoint EndPoint
         {
-            get
-            {
-                return _client;
-            }
-            private set
-            {
-                _client = value;
-            }
+            get; private set;
         }
 
         public AsyncTcpClient() 
         {
-            _client = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+            _server = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+        }
+
+        public AsyncTcpClient(Socket server)
+        {
+            _server = server;
         }
 
         public void Connect(string address, int port)
         {
+            if (IsConnected) return;
             try
             {
-                _client.BeginConnect(new IPEndPoint(IPAddress.Parse(address), port), new AsyncCallback(ConnectCallback), null);
+                EndPoint = new IPEndPoint(IPAddress.Parse(address), port);
+                _server.BeginConnect(EndPoint, new AsyncCallback(ConnectCallback), null);
             }
-            catch(SocketException)
+            catch(SocketException ex)
             {
+                MessageBox.Show(ex.Message, "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
 
+        public void Disconnect()
+        {
+            if (!IsConnected) return;
+
+            try
+            {
+                _server.Close();
+                _server = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+                IsConnected = false;
+            }
+            catch(SocketException ex)
+            {
+                MessageBox.Show(ex.Message, "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+            catch(ObjectDisposedException)
+            {
+                return;
             }
         }
 
@@ -57,25 +70,23 @@ namespace AsyncTcpLib
             try
             {
                 byte[] byteMessage = Encoding.ASCII.GetBytes(message);
-                _client.BeginSend(byteMessage, 0, byteMessage.Length, SocketFlags.None, new AsyncCallback(SendCallback), null);
+                _server.BeginSend(byteMessage, 0, byteMessage.Length, SocketFlags.None, new AsyncCallback(SendCallback), null);
             }
-            catch(Exception)
+            catch(SocketException ex)
             {
-
+                MessageBox.Show(ex.Message, "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
-        }
-
-        public event ConnectedToServerEventHandler ConnectedToServerEvent;
-        protected void OnConnected(ConnectedToServerEventArgs e)
-        {
-            ConnectedToServerEvent(this, e);
+            catch(Exception ex)
+            {
+                MessageBox.Show(ex.Message, "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
 
         private void ConnectCallback(IAsyncResult ar)
         {
             try
             {
-                _client.EndConnect(ar);
+                _server.EndConnect(ar);
                 IsConnected = true;
                 // ВЫЗВАТЬ СОБЫТИЕ ПРИСОЕДИНЕНИЯ
             }
@@ -88,9 +99,44 @@ namespace AsyncTcpLib
                 MessageBox.Show(ex.Message, "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
+
         private void SendCallback(IAsyncResult ar)
         {
-            int bytesSent = _client.EndSend(ar);
+            try
+            {
+                int bytesSent = _server.EndSend(ar);
+            }
+            catch(SocketException ex)
+            {
+                MessageBox.Show(ex.Message, "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
+
+        private void ReceiveCallback(IAsyncResult ar)
+        {
+            try
+            {
+                int receivedBytes = _server.EndReceive(ar);
+
+                if (receivedBytes == 0) return;
+
+                Array.Resize(ref _buffer, receivedBytes);
+                string text = Encoding.ASCII.GetString(_buffer);
+                if (OnMessageReceived != null)
+                {
+                    OnMessageReceived(_server, text);
+                }
+                Array.Resize(ref _buffer, _server.ReceiveBufferSize);
+
+                _server.BeginReceive(_buffer, 0, _buffer.Length, SocketFlags.None, new AsyncCallback(ReceiveCallback), null);
+            }
+            catch(SocketException ex)
+            {
+                MessageBox.Show(ex.Message, "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        public delegate void MessageReceivedHandler(Socket server, string message);
+        public event MessageReceivedHandler OnMessageReceived;
     }
 }

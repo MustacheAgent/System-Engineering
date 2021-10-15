@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
@@ -10,9 +11,7 @@ namespace AsyncTcpLib
     {
         private Socket _server;
         private Socket _client;
-
-        private bool _shutdown;
-        private bool _listening;
+        private List<Socket> _clients;
 
         /// <summary>
         /// Возвращает статус прослушивания сервером входящих подключений.
@@ -20,14 +19,16 @@ namespace AsyncTcpLib
         /// </summary>
         public bool IsListening
         {
-            get
-            {
-                return _listening;
-            }
-            private set
-            {
-                _listening = value;
-            }
+            get;
+            private set;
+        }
+
+        /// <summary>
+        /// Порт для прослушивания входящих запросов.
+        /// </summary>
+        public int Port
+        {
+            get; set;
         }
 
         /// <summary>
@@ -44,24 +45,26 @@ namespace AsyncTcpLib
 
         byte[] _buffer;
 
-        public AsyncTcpServer() { }
+        public AsyncTcpServer(int port)
+        {
+            Port = port;
+            IsListening = false;
+        }
 
         /// <summary>
         /// Запускает сервер и начинает принимать входящие запросы на подключение.
         /// </summary>
-        /// <param name="address">IP-адрес.</param>
-        /// <param name="port">Порт.</param>
-        public void StartServer(string address, int port)
+        public void StartServer()
         {
+            if (IsListening) return;
             try
             {
                 _server = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-                _server.Bind(new IPEndPoint(IPAddress.Parse(address), port));
+                _server.Bind(new IPEndPoint(0, Port));
                 _server.Listen(0);
-                IsListening = true;
-                _shutdown = false;
-                // ВЫЗВАТЬ СОБЫТИЕ ЗАПУСКА СЕРВЕРА
                 _server.BeginAccept(new AsyncCallback(AcceptCallback), null);
+                // ВЫЗВАТЬ СОБЫТИЕ ЗАПУСКА СЕРВЕРА
+                IsListening = true;
             }
             catch(SocketException ex)
             {
@@ -74,10 +77,12 @@ namespace AsyncTcpLib
         /// </summary>
         public void StopServer()
         {
+            if (!IsListening) return;
+
             try
             {
-                _shutdown = true;
                 _server.Close();
+                IsListening = false;
             }
             catch (SocketException ex)
             {
@@ -85,18 +90,54 @@ namespace AsyncTcpLib
             }
         }
 
+        public void SendMessage(string message)
+        {
+            try
+            {
+                byte[] byteMessage = Encoding.ASCII.GetBytes(message);
+                _client.BeginSend(byteMessage, 0, byteMessage.Length, SocketFlags.None, new AsyncCallback(SendCallback), null);
+            }
+            catch (SocketException ex)
+            {
+                MessageBox.Show(ex.Message, "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message, "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
 
         private void AcceptCallback(IAsyncResult ar)
         {
             try
             {
-                if(!_shutdown)
+                _client = _server.EndAccept(ar);
+
+                if (OnClientConnected != null)
                 {
-                    _client = _server.EndAccept(ar);
-                    _buffer = new byte[_client.ReceiveBufferSize];
-                    _client.BeginReceive(_buffer, 0, _buffer.Length, SocketFlags.None, new AsyncCallback(ReceiveCallback), null);
-                    _server.BeginAccept(new AsyncCallback(AcceptCallback), null);
+                    OnClientConnected(_client);
                 }
+
+                //_client.BeginReceive(_buffer, 0, _buffer.Length, SocketFlags.None, new AsyncCallback(ReceiveCallback), null);
+                _server.BeginAccept(new AsyncCallback(AcceptCallback), null);
+            }
+            catch(SocketException ex)
+            {
+                MessageBox.Show(ex.Message, "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+            catch(ObjectDisposedException)
+            {
+                return;
+            }
+        }
+
+        private void SendCallback(IAsyncResult ar)
+        {
+            try
+            {
+                int bytesSent = _server.EndSend(ar);
+                if (OnMessageSent != null)
+                    OnMessageSent(_client);
             }
             catch(SocketException ex)
             {
@@ -124,5 +165,11 @@ namespace AsyncTcpLib
                 MessageBox.Show(ex.Message, "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
+
+        public delegate void ClientConnectedHandler(Socket client);
+        public event ClientConnectedHandler OnClientConnected;
+
+        public delegate void MessageSentHandler(Socket client);
+        public event MessageSentHandler OnMessageSent;
     }
 }
