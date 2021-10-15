@@ -49,6 +49,8 @@ namespace AsyncTcpLib
         {
             Port = port;
             IsListening = false;
+
+            _clients = new List<Socket>();
         }
 
         /// <summary>
@@ -90,11 +92,15 @@ namespace AsyncTcpLib
             }
         }
 
+        /// <summary>
+        /// Отправляет сообщение клиенту.
+        /// </summary>
+        /// <param name="message">Сообщение.</param>
         public void SendMessage(string message)
         {
             try
-            {
-                byte[] byteMessage = Encoding.ASCII.GetBytes(message);
+            {   
+                byte[] byteMessage = Encoding.UTF8.GetBytes(message);
                 _client.BeginSend(byteMessage, 0, byteMessage.Length, SocketFlags.None, new AsyncCallback(SendCallback), null);
             }
             catch (SocketException ex)
@@ -118,7 +124,6 @@ namespace AsyncTcpLib
                     OnClientConnected(_client);
                 }
 
-                //_client.BeginReceive(_buffer, 0, _buffer.Length, SocketFlags.None, new AsyncCallback(ReceiveCallback), null);
                 _server.BeginAccept(new AsyncCallback(AcceptCallback), null);
             }
             catch(SocketException ex)
@@ -135,7 +140,7 @@ namespace AsyncTcpLib
         {
             try
             {
-                int bytesSent = _server.EndSend(ar);
+                _client.EndSend(ar);
                 if (OnMessageSent != null)
                     OnMessageSent(_client);
             }

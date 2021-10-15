@@ -103,7 +103,7 @@ namespace TCP_Client__WinForms_
 
         private void Client_OnMessageReceived(Socket server, string message)
         {
-            Log("От сервера " + server.RemoteEndPoint.ToString() + "получено сообщение: " + message);
+            Log("От сервера " + server.RemoteEndPoint.ToString() + " получено сообщение: " + message);
         }
     }
 }

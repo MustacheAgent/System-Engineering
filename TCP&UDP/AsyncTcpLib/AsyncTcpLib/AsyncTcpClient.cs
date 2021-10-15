@@ -88,7 +88,11 @@ namespace AsyncTcpLib
             {
                 _server.EndConnect(ar);
                 IsConnected = true;
-                // ВЫЗВАТЬ СОБЫТИЕ ПРИСОЕДИНЕНИЯ
+                if (OnConnected != null)
+                    OnConnected(_server);
+
+                _buffer = new byte[_server.SendBufferSize];
+                _server.BeginReceive(_buffer, 0, _buffer.Length, SocketFlags.None, new AsyncCallback(ReceiveCallback), null);
             }
             catch (SocketException ex)
             {
@@ -121,12 +125,12 @@ namespace AsyncTcpLib
                 if (receivedBytes == 0) return;
 
                 Array.Resize(ref _buffer, receivedBytes);
-                string text = Encoding.ASCII.GetString(_buffer);
+                string text = Encoding.UTF8.GetString(_buffer);
+
                 if (OnMessageReceived != null)
-                {
                     OnMessageReceived(_server, text);
-                }
-                Array.Resize(ref _buffer, _server.ReceiveBufferSize);
+
+                Array.Resize(ref _buffer, _server.SendBufferSize);
 
                 _server.BeginReceive(_buffer, 0, _buffer.Length, SocketFlags.None, new AsyncCallback(ReceiveCallback), null);
             }
@@ -138,5 +142,8 @@ namespace AsyncTcpLib
 
         public delegate void MessageReceivedHandler(Socket server, string message);
         public event MessageReceivedHandler OnMessageReceived;
+
+        public delegate void OnConnectedHandler(Socket server);
+        public event OnConnectedHandler OnConnected;
     }
 }

@@ -88,7 +88,7 @@ namespace TCP_Server__WinForms_
 
         private void Server_OnMessageSent(Socket client)
         {
-            Log("Клиенту " + client.RemoteEndPoint.ToString() + "отправлено сообщение: " + TxtRichMessage.Text);
+            Log("Клиенту " + client.RemoteEndPoint.ToString() + " отправлено сообщение: " + TxtRichMessage.Text);
         }
 
         private void TimerStatus_Tick(object sender, EventArgs e)
