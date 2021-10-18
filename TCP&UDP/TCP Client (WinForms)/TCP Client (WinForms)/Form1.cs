@@ -22,6 +22,7 @@ namespace TCP_Client__WinForms_
 
             client = new();
             client.OnMessageReceived += Client_OnMessageReceived;
+            client.OnRefused += Client_OnRefused;
         }
 
         private void BtnConnect_Click(object sender, EventArgs e)
@@ -32,7 +33,7 @@ namespace TCP_Client__WinForms_
                 {
                     client.Connect(TxtAddress.Text, int.Parse(TxtPort.Text));
                     BtnConnect.Text = "Отключиться";
-                    TxtAddress.ReadOnly = TxtPort.ReadOnly = false;
+                    TxtAddress.ReadOnly = TxtPort.ReadOnly = true;
                     TimerStatus.Start();
                 }
                 catch (SocketException ex)
@@ -50,7 +51,7 @@ namespace TCP_Client__WinForms_
                 {
                     client.Disconnect();
                     BtnConnect.Text = "Подключиться";
-                    TxtAddress.ReadOnly = TxtPort.ReadOnly = true;
+                    TxtAddress.ReadOnly = TxtPort.ReadOnly = false;
                 }
                 catch (SocketException ex)
                 {
@@ -73,16 +74,15 @@ namespace TCP_Client__WinForms_
             }
         }
 
-        private void UpdateLog(string update)
-        {
-            TxtRichMessage.AppendText(update);
-        }
-
         private void Log(string log)
         {
             StringBuilder logBuilder = new();
             logBuilder.Append(DateTime.Now.ToString() + ": " + log + "\n");
-            Invoke(new Action<string>(UpdateLog), logBuilder.ToString());
+            Action<string> update = logs =>
+            {
+                TxtRichMessage.AppendText(logBuilder.ToString());
+            };
+            Invoke(update, logBuilder.ToString());
         }
 
         private bool Ping(string address)
@@ -104,6 +104,17 @@ namespace TCP_Client__WinForms_
         private void Client_OnMessageReceived(Socket server, string message)
         {
             Log("От сервера " + server.RemoteEndPoint.ToString() + " получено сообщение: " + message);
+        }
+
+        private void Client_OnRefused(IPEndPoint endPoint)
+        {
+            Log("Не удалось подключиться к серверу " + endPoint.ToString());
+            Action<string> update = text =>
+            {
+                BtnConnect.Text = "Подключиться";
+                TxtAddress.ReadOnly = TxtPort.ReadOnly = false;
+            };
+            Invoke(update, "0");
         }
     }
 }

@@ -99,16 +99,15 @@ namespace TCP_Server__WinForms_
                 BarServer.Items[0].Text = "Недоступен";
         }
 
-        private void UpdateLog(string update)
-        {
-            TxtRichLog.AppendText(update);
-        }
-
         private void Log(string log)
         {
             StringBuilder logBuilder = new();
             logBuilder.Append(DateTime.Now.ToString() + ": " + log + "\n");
-            Invoke(new Action<string>(UpdateLog), logBuilder.ToString());
+            Action<string> update = logs =>
+            {
+                TxtRichLog.AppendText(logBuilder.ToString());
+            };
+            Invoke(update, logBuilder.ToString());
         }
     }
 }

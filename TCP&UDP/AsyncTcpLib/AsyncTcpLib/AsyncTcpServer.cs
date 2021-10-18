@@ -65,8 +65,8 @@ namespace AsyncTcpLib
                 _server.Bind(new IPEndPoint(0, Port));
                 _server.Listen(0);
                 _server.BeginAccept(new AsyncCallback(AcceptCallback), null);
-                // ВЫЗВАТЬ СОБЫТИЕ ЗАПУСКА СЕРВЕРА
                 IsListening = true;
+                OnServerStart?.Invoke(_server);
             }
             catch(SocketException ex)
             {
@@ -84,7 +84,9 @@ namespace AsyncTcpLib
             try
             {
                 _server.Close();
+                _server.Dispose();
                 IsListening = false;
+                OnServerStop?.Invoke(_server);
             }
             catch (SocketException ex)
             {
@@ -119,10 +121,7 @@ namespace AsyncTcpLib
             {
                 _client = _server.EndAccept(ar);
 
-                if (OnClientConnected != null)
-                {
-                    OnClientConnected(_client);
-                }
+                OnClientConnected?.Invoke(_client);
 
                 _server.BeginAccept(new AsyncCallback(AcceptCallback), null);
             }
@@ -141,8 +140,7 @@ namespace AsyncTcpLib
             try
             {
                 _client.EndSend(ar);
-                if (OnMessageSent != null)
-                    OnMessageSent(_client);
+                OnMessageSent?.Invoke(_client);
             }
             catch(SocketException ex)
             {
@@ -160,7 +158,7 @@ namespace AsyncTcpLib
 
                 Array.Resize(ref _buffer, receivedBytes);
                 string text = Encoding.ASCII.GetString(_buffer);
-                // ВЫЗВАТЬ СОБЫТИЕ ПОЛУЧЕНИЯ ДАННЫХ
+                OnMessageReceived?.Invoke(_client, text);
                 Array.Resize(ref _buffer, _client.ReceiveBufferSize);
 
                 _client.BeginReceive(_buffer, 0, _buffer.Length, SocketFlags.None, new AsyncCallback(ReceiveCallback), null);
@@ -171,10 +169,19 @@ namespace AsyncTcpLib
             }
         }
 
+        public delegate void ServerStartHandler(Socket server);
+        public event ServerStartHandler OnServerStart;
+
+        public delegate void ServerStopHandler(Socket server);
+        public event ServerStopHandler OnServerStop;
+
         public delegate void ClientConnectedHandler(Socket client);
         public event ClientConnectedHandler OnClientConnected;
 
         public delegate void MessageSentHandler(Socket client);
         public event MessageSentHandler OnMessageSent;
+
+        public delegate void MessageReceiverHandler(Socket client, string message);
+        public event MessageReceiverHandler OnMessageReceived;
     }
 }

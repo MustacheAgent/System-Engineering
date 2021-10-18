@@ -16,7 +16,7 @@ namespace AsyncTcpLib
             get; private set;
         }
 
-        public IPEndPoint EndPoint
+        public IPEndPoint ServerAddress
         {
             get; private set;
         }
@@ -36,8 +36,8 @@ namespace AsyncTcpLib
             if (IsConnected) return;
             try
             {
-                EndPoint = new IPEndPoint(IPAddress.Parse(address), port);
-                _server.BeginConnect(EndPoint, new AsyncCallback(ConnectCallback), null);
+                ServerAddress = new IPEndPoint(IPAddress.Parse(address), port);
+                _server.BeginConnect(ServerAddress, new AsyncCallback(ConnectCallback), null);
             }
             catch(SocketException ex)
             {
@@ -88,15 +88,17 @@ namespace AsyncTcpLib
             {
                 _server.EndConnect(ar);
                 IsConnected = true;
-                if (OnConnected != null)
-                    OnConnected(_server);
+                OnConnected?.Invoke(_server);
 
                 _buffer = new byte[_server.SendBufferSize];
                 _server.BeginReceive(_buffer, 0, _buffer.Length, SocketFlags.None, new AsyncCallback(ReceiveCallback), null);
             }
             catch (SocketException ex)
             {
-                MessageBox.Show(ex.Message, "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                if (ex.ErrorCode == 10061)
+                    OnRefused?.Invoke(ServerAddress);
+                else
+                    MessageBox.Show(ex.Message, "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
             catch (Exception ex)
             {
@@ -127,14 +129,17 @@ namespace AsyncTcpLib
                 Array.Resize(ref _buffer, receivedBytes);
                 string text = Encoding.UTF8.GetString(_buffer);
 
-                if (OnMessageReceived != null)
-                    OnMessageReceived(_server, text);
+                OnMessageReceived?.Invoke(_server, text);
 
                 Array.Resize(ref _buffer, _server.SendBufferSize);
 
                 _server.BeginReceive(_buffer, 0, _buffer.Length, SocketFlags.None, new AsyncCallback(ReceiveCallback), null);
             }
             catch(SocketException ex)
+            {
+                MessageBox.Show(ex.Message, "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+            catch(Exception ex)
             {
                 MessageBox.Show(ex.Message, "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
@@ -145,5 +150,8 @@ namespace AsyncTcpLib
 
         public delegate void OnConnectedHandler(Socket server);
         public event OnConnectedHandler OnConnected;
+
+        public delegate void OnRefusedHandler(IPEndPoint endPoint);
+        public event OnRefusedHandler OnRefused;
     }
 }
