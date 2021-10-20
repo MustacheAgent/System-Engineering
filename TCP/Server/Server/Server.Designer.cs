@@ -1,15 +1,15 @@
 ﻿
-namespace TCP_Client__WinForms_
+namespace Server
 {
-    partial class TCPClient
+    partial class Server
     {
         /// <summary>
-        ///  Required designer variable.
+        /// Required designer variable.
         /// </summary>
         private System.ComponentModel.IContainer components = null;
 
         /// <summary>
-        ///  Clean up any resources being used.
+        /// Clean up any resources being used.
         /// </summary>
         /// <param name="disposing">true if managed resources should be disposed; otherwise, false.</param>
         protected override void Dispose(bool disposing)
@@ -20,6 +20,7 @@ namespace TCP_Client__WinForms_
             }
             base.Dispose(disposing);
         }
+
 
         #region Windows Form Designer generated code
 
@@ -39,10 +40,14 @@ namespace TCP_Client__WinForms_
             this.BtnConnect = new System.Windows.Forms.Button();
             this.groupBox1 = new System.Windows.Forms.GroupBox();
             this.groupBox2 = new System.Windows.Forms.GroupBox();
-            this.TimerStatus = new System.Windows.Forms.Timer(this.components);
+            this.BtnSend = new System.Windows.Forms.Button();
             this.BarServer = new System.Windows.Forms.StatusStrip();
+            this.TimerStatus = new System.Windows.Forms.Timer(this.components);
+            this.groupBox3 = new System.Windows.Forms.GroupBox();
+            this.TxtRichLog = new System.Windows.Forms.RichTextBox();
             this.groupBox1.SuspendLayout();
             this.groupBox2.SuspendLayout();
+            this.groupBox3.SuspendLayout();
             this.SuspendLayout();
             // 
             // label1
@@ -60,6 +65,7 @@ namespace TCP_Client__WinForms_
             this.TxtAddress.Name = "TxtAddress";
             this.TxtAddress.Size = new System.Drawing.Size(100, 23);
             this.TxtAddress.TabIndex = 1;
+            this.TxtAddress.Visible = false;
             // 
             // TxtPort
             // 
@@ -81,8 +87,7 @@ namespace TCP_Client__WinForms_
             // 
             this.TxtRichMessage.Location = new System.Drawing.Point(6, 45);
             this.TxtRichMessage.Name = "TxtRichMessage";
-            this.TxtRichMessage.ReadOnly = true;
-            this.TxtRichMessage.Size = new System.Drawing.Size(182, 96);
+            this.TxtRichMessage.Size = new System.Drawing.Size(190, 96);
             this.TxtRichMessage.TabIndex = 5;
             this.TxtRichMessage.Text = "";
             // 
@@ -92,7 +97,7 @@ namespace TCP_Client__WinForms_
             this.label3.Name = "label3";
             this.label3.Size = new System.Drawing.Size(182, 23);
             this.label3.TabIndex = 6;
-            this.label3.Text = "Принятое сообщение";
+            this.label3.Text = "Отправляемое сообщение";
             this.label3.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
             // 
             // BtnConnect
@@ -101,7 +106,7 @@ namespace TCP_Client__WinForms_
             this.BtnConnect.Name = "BtnConnect";
             this.BtnConnect.Size = new System.Drawing.Size(100, 23);
             this.BtnConnect.TabIndex = 7;
-            this.BtnConnect.Text = "Подключиться";
+            this.BtnConnect.Text = "Запустить";
             this.BtnConnect.UseVisualStyleBackColor = true;
             this.BtnConnect.Click += new System.EventHandler(this.BtnConnect_Click);
             // 
@@ -121,44 +126,76 @@ namespace TCP_Client__WinForms_
             // 
             // groupBox2
             // 
+            this.groupBox2.Controls.Add(this.BtnSend);
             this.groupBox2.Controls.Add(this.label3);
             this.groupBox2.Controls.Add(this.TxtRichMessage);
-            this.groupBox2.Location = new System.Drawing.Point(12, 128);
+            this.groupBox2.Location = new System.Drawing.Point(218, 12);
             this.groupBox2.Name = "groupBox2";
-            this.groupBox2.Size = new System.Drawing.Size(200, 152);
+            this.groupBox2.Size = new System.Drawing.Size(200, 182);
             this.groupBox2.TabIndex = 9;
             this.groupBox2.TabStop = false;
             this.groupBox2.Text = "Сообщение";
             // 
-            // TimerStatus
+            // BtnSend
             // 
-            this.TimerStatus.Interval = 1000;
-            this.TimerStatus.Tick += new System.EventHandler(this.TimerStatus_Tick);
+            this.BtnSend.Location = new System.Drawing.Point(6, 147);
+            this.BtnSend.Name = "BtnSend";
+            this.BtnSend.Size = new System.Drawing.Size(189, 23);
+            this.BtnSend.TabIndex = 8;
+            this.BtnSend.Text = "Отправить";
+            this.BtnSend.UseVisualStyleBackColor = true;
+            this.BtnSend.Click += new System.EventHandler(this.BtnSend_Click);
             // 
             // BarServer
             // 
-            this.BarServer.Location = new System.Drawing.Point(0, 310);
+            this.BarServer.ImageScalingSize = new System.Drawing.Size(20, 20);
+            this.BarServer.Location = new System.Drawing.Point(0, 342);
             this.BarServer.Name = "BarServer";
-            this.BarServer.Size = new System.Drawing.Size(224, 22);
+            this.BarServer.Size = new System.Drawing.Size(430, 22);
             this.BarServer.TabIndex = 10;
             this.BarServer.Text = "statusStrip1";
             // 
-            // TCPClient
+            // TimerStatus
+            // 
+            this.TimerStatus.Tick += new System.EventHandler(this.TimerStatus_Tick);
+            // 
+            // groupBox3
+            // 
+            this.groupBox3.Controls.Add(this.TxtRichLog);
+            this.groupBox3.Location = new System.Drawing.Point(12, 200);
+            this.groupBox3.Name = "groupBox3";
+            this.groupBox3.Size = new System.Drawing.Size(406, 130);
+            this.groupBox3.TabIndex = 10;
+            this.groupBox3.TabStop = false;
+            this.groupBox3.Text = "Лог";
+            // 
+            // TxtRichLog
+            // 
+            this.TxtRichLog.Location = new System.Drawing.Point(5, 21);
+            this.TxtRichLog.Name = "TxtRichLog";
+            this.TxtRichLog.ReadOnly = true;
+            this.TxtRichLog.Size = new System.Drawing.Size(397, 96);
+            this.TxtRichLog.TabIndex = 5;
+            this.TxtRichLog.Text = "";
+            // 
+            // TCPServer
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(224, 332);
+            this.ClientSize = new System.Drawing.Size(430, 364);
+            this.Controls.Add(this.groupBox3);
             this.Controls.Add(this.BarServer);
             this.Controls.Add(this.groupBox2);
             this.Controls.Add(this.groupBox1);
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle;
             this.MaximizeBox = false;
             this.MinimizeBox = false;
-            this.Name = "TCPClient";
-            this.Text = "TCP клиент";
+            this.Name = "TCPServer";
+            this.Text = "TCP сервер";
             this.groupBox1.ResumeLayout(false);
             this.groupBox1.PerformLayout();
             this.groupBox2.ResumeLayout(false);
+            this.groupBox3.ResumeLayout(false);
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -175,8 +212,11 @@ namespace TCP_Client__WinForms_
         private System.Windows.Forms.Button BtnConnect;
         private System.Windows.Forms.GroupBox groupBox1;
         private System.Windows.Forms.GroupBox groupBox2;
+        private System.Windows.Forms.Button BtnSend;
         private System.Windows.Forms.Timer TimerStatus;
         private System.Windows.Forms.StatusStrip BarServer;
+        private System.Windows.Forms.GroupBox groupBox3;
+        private System.Windows.Forms.RichTextBox TxtRichLog;
     }
 }
 

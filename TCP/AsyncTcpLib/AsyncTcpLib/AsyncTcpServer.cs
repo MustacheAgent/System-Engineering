@@ -70,7 +70,7 @@ namespace AsyncTcpLib
             }
             catch(SocketException ex)
             {
-                MessageBox.Show(ex.Message, "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show(ex.Message, "Ошибка запуска", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
@@ -84,13 +84,14 @@ namespace AsyncTcpLib
             try
             {
                 _server.Close();
+                //_server.Shutdown(SocketShutdown.Both);
                 _server.Dispose();
                 IsListening = false;
                 OnServerStop?.Invoke(_server);
             }
             catch (SocketException ex)
             {
-                MessageBox.Show(ex.Message, "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show(ex.Message, "Ошибка остановки", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
@@ -107,11 +108,11 @@ namespace AsyncTcpLib
             }
             catch (SocketException ex)
             {
-                MessageBox.Show(ex.Message, "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show(ex.Message, "Ошибка отправки", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
             catch (Exception ex)
             {
-                MessageBox.Show(ex.Message, "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show(ex.Message, "Ошибка отправки", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
@@ -120,14 +121,16 @@ namespace AsyncTcpLib
             try
             {
                 _client = _server.EndAccept(ar);
-
+                _buffer = new byte[_server.ReceiveBufferSize];
+                _client.BeginReceive(_buffer, 0, _buffer.Length, SocketFlags.None, new AsyncCallback(ReceiveCallback), null);
                 OnClientConnected?.Invoke(_client);
 
-                _server.BeginAccept(new AsyncCallback(AcceptCallback), null);
+                if (IsListening)
+                    _server.BeginAccept(new AsyncCallback(AcceptCallback), null);
             }
             catch(SocketException ex)
             {
-                MessageBox.Show(ex.Message, "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show(ex.Message, "Ошибка подключения", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
             catch(ObjectDisposedException)
             {
@@ -144,7 +147,7 @@ namespace AsyncTcpLib
             }
             catch(SocketException ex)
             {
-                MessageBox.Show(ex.Message, "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show(ex.Message, "Ошибка отправки", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
@@ -152,20 +155,31 @@ namespace AsyncTcpLib
         {
             try
             {
-                int receivedBytes = _client.EndReceive(ar);
+                if (_client.Connected)
+                {
+                    int receivedBytes = _client.EndReceive(ar);
 
-                if (receivedBytes == 0) return;
+                    if (receivedBytes == 0) return;
 
-                Array.Resize(ref _buffer, receivedBytes);
-                string text = Encoding.ASCII.GetString(_buffer);
-                OnMessageReceived?.Invoke(_client, text);
-                Array.Resize(ref _buffer, _client.ReceiveBufferSize);
+                    Array.Resize(ref _buffer, receivedBytes);
+                    string text = Encoding.ASCII.GetString(_buffer);
 
-                _client.BeginReceive(_buffer, 0, _buffer.Length, SocketFlags.None, new AsyncCallback(ReceiveCallback), null);
+                    if (!string.IsNullOrEmpty(text)  && !text.Equals("check"))
+                    {
+                        OnMessageReceived?.Invoke(_client, text);
+                    }
+
+                    Array.Resize(ref _buffer, _client.ReceiveBufferSize);
+
+                    _client.BeginReceive(_buffer, 0, _buffer.Length, SocketFlags.None, new AsyncCallback(ReceiveCallback), null);
+                }
             }
             catch(SocketException ex)
             {
-                MessageBox.Show(ex.Message, "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                if (ex.ErrorCode == 10054)
+                    OnClientDisconnected?.Invoke(_client);
+                else
+                    MessageBox.Show(ex.Message, "Ошибка приема", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
@@ -177,6 +191,9 @@ namespace AsyncTcpLib
 
         public delegate void ClientConnectedHandler(Socket client);
         public event ClientConnectedHandler OnClientConnected;
+
+        public delegate void ClientDisconnectedHandler(Socket client);
+        public event ClientDisconnectedHandler OnClientDisconnected;
 
         public delegate void MessageSentHandler(Socket client);
         public event MessageSentHandler OnMessageSent;

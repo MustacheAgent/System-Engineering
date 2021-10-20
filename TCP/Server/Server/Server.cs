@@ -1,30 +1,41 @@
-﻿using System;
+﻿using AsyncTcpLib;
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Data;
+using System.Drawing;
+using System.Linq;
 using System.Net;
-using System.Net.NetworkInformation;
 using System.Net.Sockets;
 using System.Text;
+using System.Threading.Tasks;
 using System.Windows.Forms;
-using AsyncTcpLib;
 
-namespace TCP_Server__WinForms_
+namespace Server
 {
-    public partial class TCPServer : Form
+    public partial class Server : Form
     {
         AsyncTcpServer server;
 
-        public TCPServer()
+        public Server()
         {
             InitializeComponent();
 
             TxtAddress.Text = GetLocalIP();
             TxtPort.Text = "8080";
-            
+
             BarServer.Items.Add(new ToolStripStatusLabel());
             BarServer.Items[0].Text = "Недоступен";
 
-            server = new(int.Parse(TxtPort.Text));
+            server = new AsyncTcpServer(int.Parse(TxtPort.Text));
             server.OnClientConnected += Server_OnClientConnected;
             server.OnMessageSent += Server_OnMessageSent;
+            server.OnMessageReceived += Server_OnMessageReceived;
+        }
+
+        private void Server_OnMessageReceived(Socket client, string message)
+        {
+            Log("От клиента " + client.RemoteEndPoint.ToString() + " получено сообщение: " + message);
         }
 
         private void BtnConnect_Click(object sender, EventArgs e)
@@ -73,7 +84,7 @@ namespace TCP_Server__WinForms_
 
         private string GetLocalIP()
         {
-            using (Socket socket = new(AddressFamily.InterNetwork, SocketType.Dgram, 0))
+            using (Socket socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, 0))
             {
                 socket.Connect("8.8.8.8", 65530);
                 IPEndPoint endPoint = socket.LocalEndPoint as IPEndPoint;
@@ -101,7 +112,7 @@ namespace TCP_Server__WinForms_
 
         private void Log(string log)
         {
-            StringBuilder logBuilder = new();
+            StringBuilder logBuilder = new StringBuilder();
             logBuilder.Append(DateTime.Now.ToString() + ": " + log + "\n");
             Action<string> update = logs =>
             {

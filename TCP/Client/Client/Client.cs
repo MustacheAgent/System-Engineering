@@ -1,18 +1,24 @@
-﻿using System;
-using System.Windows.Forms;
-using System.Net.Sockets;
+﻿using AsyncTcpLib;
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Data;
+using System.Drawing;
+using System.Linq;
 using System.Net;
 using System.Net.NetworkInformation;
-using AsyncTcpLib;
+using System.Net.Sockets;
 using System.Text;
+using System.Threading.Tasks;
+using System.Windows.Forms;
 
-namespace TCP_Client__WinForms_
+namespace Client
 {
-    public partial class TCPClient : Form
+    public partial class Client : Form
     {
         AsyncTcpClient client;
 
-        public TCPClient()
+        public Client()
         {
             InitializeComponent();
             TxtAddress.Text = GetLocalIP();
@@ -20,9 +26,10 @@ namespace TCP_Client__WinForms_
             BarServer.Items.Add(new ToolStripStatusLabel());
             BarServer.Items[0].Text = "Нет подключения";
 
-            client = new();
+            client = new AsyncTcpClient();
             client.OnMessageReceived += Client_OnMessageReceived;
             client.OnRefused += Client_OnRefused;
+            client.OnConnectionLost += Client_OnConnectionLost;
         }
 
         private void BtnConnect_Click(object sender, EventArgs e)
@@ -66,7 +73,7 @@ namespace TCP_Client__WinForms_
 
         private string GetLocalIP()
         {
-            using (Socket socket = new(AddressFamily.InterNetwork, SocketType.Dgram, 0))
+            using (Socket socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, 0))
             {
                 socket.Connect("8.8.8.8", 65530);
                 IPEndPoint endPoint = socket.LocalEndPoint as IPEndPoint;
@@ -76,13 +83,21 @@ namespace TCP_Client__WinForms_
 
         private void Log(string log)
         {
-            StringBuilder logBuilder = new();
+            StringBuilder logBuilder = new StringBuilder();
             logBuilder.Append(DateTime.Now.ToString() + ": " + log + "\n");
             Action<string> update = logs =>
             {
-                TxtRichMessage.AppendText(logBuilder.ToString());
+                TxtRichMessage?.AppendText(logBuilder.ToString());
             };
-            Invoke(update, logBuilder.ToString());
+
+            try
+            {
+                Invoke(update, logBuilder.ToString());
+            }
+            catch(Exception)
+            {
+                return;
+            }
         }
 
         private bool Ping(string address)
@@ -115,6 +130,17 @@ namespace TCP_Client__WinForms_
                 TxtAddress.ReadOnly = TxtPort.ReadOnly = false;
             };
             Invoke(update, "0");
+        }
+
+        private void Client_OnConnectionLost(Socket server)
+        {
+            Log("Соединение с сервером потеряно");
+
+            Invoke((MethodInvoker)delegate ()
+            {
+                BtnConnect.Text = "Подключиться";
+                TxtAddress.ReadOnly = TxtPort.ReadOnly = false;
+            });
         }
     }
 }
