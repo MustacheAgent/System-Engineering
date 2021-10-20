@@ -1,15 +1,9 @@
 ﻿using AsyncTcpLib;
 using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
-using System.Drawing;
-using System.Linq;
 using System.Net;
 using System.Net.NetworkInformation;
 using System.Net.Sockets;
 using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 
 namespace Client
@@ -124,12 +118,11 @@ namespace Client
         private void Client_OnRefused(IPEndPoint endPoint)
         {
             Log("Не удалось подключиться к серверу " + endPoint.ToString());
-            Action<string> update = text =>
+            Invoke((MethodInvoker)delegate ()
             {
                 BtnConnect.Text = "Подключиться";
                 TxtAddress.ReadOnly = TxtPort.ReadOnly = false;
-            };
-            Invoke(update, "0");
+            });
         }
 
         private void Client_OnConnectionLost(Socket server)

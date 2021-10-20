@@ -4,6 +4,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Windows.Forms;
+using System.Threading;
 
 namespace AsyncTcpLib
 {
@@ -11,7 +12,8 @@ namespace AsyncTcpLib
     {
         private Socket _server;
         private Socket _client;
-        private List<Socket> _clients;
+
+        Thread checkConnectionThread;
 
         /// <summary>
         /// Возвращает статус прослушивания сервером входящих подключений.
@@ -49,8 +51,6 @@ namespace AsyncTcpLib
         {
             Port = port;
             IsListening = false;
-
-            _clients = new List<Socket>();
         }
 
         /// <summary>
@@ -62,6 +62,7 @@ namespace AsyncTcpLib
             try
             {
                 _server = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+                _server.NoDelay = true;
                 _server.Bind(new IPEndPoint(0, Port));
                 _server.Listen(0);
                 _server.BeginAccept(new AsyncCallback(AcceptCallback), null);
@@ -83,9 +84,9 @@ namespace AsyncTcpLib
 
             try
             {
-                _server.Close();
+                //_server.Disconnect(false);
                 //_server.Shutdown(SocketShutdown.Both);
-                _server.Dispose();
+                _server.Close();
                 IsListening = false;
                 OnServerStop?.Invoke(_server);
             }
@@ -116,6 +117,25 @@ namespace AsyncTcpLib
             }
         }
 
+        private void CheckConnection()
+        {
+            while (true)
+            {
+                try
+                {
+                    //byte[] tmp = new byte[] { 0 };
+                    byte[] tmp = Encoding.UTF8.GetBytes("check");
+                    int sent = _client.Send(tmp);
+                }
+                catch (SocketException ex)
+                {
+                    MessageBox.Show(ex.Message, "Ошибка проверки подключения", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+
+                Thread.Sleep(1000);
+            }
+        }
+
         private void AcceptCallback(IAsyncResult ar)
         {
             try
@@ -124,6 +144,13 @@ namespace AsyncTcpLib
                 _buffer = new byte[_server.ReceiveBufferSize];
                 _client.BeginReceive(_buffer, 0, _buffer.Length, SocketFlags.None, new AsyncCallback(ReceiveCallback), null);
                 OnClientConnected?.Invoke(_client);
+
+                checkConnectionThread = new Thread(new ThreadStart(CheckConnection))
+                {
+                    IsBackground = true
+                };
+
+                checkConnectionThread.Start();
 
                 if (IsListening)
                     _server.BeginAccept(new AsyncCallback(AcceptCallback), null);
@@ -164,14 +191,15 @@ namespace AsyncTcpLib
                     Array.Resize(ref _buffer, receivedBytes);
                     string text = Encoding.ASCII.GetString(_buffer);
 
-                    if (!string.IsNullOrEmpty(text)  && !text.Equals("check"))
+                    if (!string.IsNullOrEmpty(text) /*&& !text.Equals("check")*/)
                     {
                         OnMessageReceived?.Invoke(_client, text);
                     }
 
                     Array.Resize(ref _buffer, _client.ReceiveBufferSize);
 
-                    _client.BeginReceive(_buffer, 0, _buffer.Length, SocketFlags.None, new AsyncCallback(ReceiveCallback), null);
+                    if (IsListening)
+                        _client.BeginReceive(_buffer, 0, _buffer.Length, SocketFlags.None, new AsyncCallback(ReceiveCallback), null);
                 }
             }
             catch(SocketException ex)

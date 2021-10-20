@@ -58,7 +58,6 @@ namespace AsyncTcpLib
                 _server.Close();
                 _server.Dispose();
                 _server = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-                checkThread.Abort();
             }
             catch(SocketException ex)
             {
@@ -116,9 +115,6 @@ namespace AsyncTcpLib
                 IsConnected = true;
                 OnConnected?.Invoke(_server);
 
-                checkThread = new Thread(new ThreadStart(CheckConnection));
-                checkThread.Start();
-
                 _buffer = new byte[_server.SendBufferSize];
                 _server.BeginReceive(_buffer, 0, _buffer.Length, SocketFlags.None, new AsyncCallback(ReceiveMessageCallback), null);
             }
@@ -159,10 +155,13 @@ namespace AsyncTcpLib
                     Array.Resize(ref _buffer, receivedBytes);
                     string text = Encoding.UTF8.GetString(_buffer);
 
-                    OnMessageReceived?.Invoke(_server, text);
+                    if (!text.Equals("check"))
+                        OnMessageReceived?.Invoke(_server, text);
 
                     Array.Resize(ref _buffer, _server.SendBufferSize);
-                    _server.BeginReceive(_buffer, 0, _buffer.Length, SocketFlags.None, new AsyncCallback(ReceiveMessageCallback), null);
+
+                    if (IsConnected)
+                        _server.BeginReceive(_buffer, 0, _buffer.Length, SocketFlags.None, new AsyncCallback(ReceiveMessageCallback), null);
                 }
             }
             catch(SocketException ex)

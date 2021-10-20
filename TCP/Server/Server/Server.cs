@@ -1,14 +1,8 @@
 ﻿using AsyncTcpLib;
 using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
-using System.Drawing;
-using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 
 namespace Server
@@ -16,6 +10,7 @@ namespace Server
     public partial class Server : Form
     {
         AsyncTcpServer server;
+        string message;
 
         public Server()
         {
@@ -31,11 +26,6 @@ namespace Server
             server.OnClientConnected += Server_OnClientConnected;
             server.OnMessageSent += Server_OnMessageSent;
             server.OnMessageReceived += Server_OnMessageReceived;
-        }
-
-        private void Server_OnMessageReceived(Socket client, string message)
-        {
-            Log("От клиента " + client.RemoteEndPoint.ToString() + " получено сообщение: " + message);
         }
 
         private void BtnConnect_Click(object sender, EventArgs e)
@@ -79,7 +69,8 @@ namespace Server
 
         private void BtnSend_Click(object sender, EventArgs e)
         {
-            server.SendMessage(TxtRichMessage.Text);
+            message = TxtRichMessage.Text;
+            server.SendMessage(message);
         }
 
         private string GetLocalIP()
@@ -94,12 +85,20 @@ namespace Server
 
         private void Server_OnClientConnected(Socket client)
         {
-            Log("Присоединился клиент: " + client.RemoteEndPoint.ToString());
+            Invoke((Action<string>)Log, "Присоединился клиент: " + client.RemoteEndPoint.ToString());
+            //Log("Присоединился клиент: " + client.RemoteEndPoint.ToString());
         }
 
         private void Server_OnMessageSent(Socket client)
         {
-            Log("Клиенту " + client.RemoteEndPoint.ToString() + " отправлено сообщение: " + TxtRichMessage.Text);
+            Invoke((Action<string>)Log, "Клиенту " + client.RemoteEndPoint.ToString() + " отправлено сообщение: " + message);
+            //Log("Клиенту " + client.RemoteEndPoint.ToString() + " отправлено сообщение: " + TxtRichMessage.Text);
+        }
+
+        private void Server_OnMessageReceived(Socket client, string message)
+        {
+            Invoke((Action<string>)Log, "От клиента " + client.RemoteEndPoint.ToString() + " получено сообщение: " + message);
+            //Log("От клиента " + client.RemoteEndPoint.ToString() + " получено сообщение: " + message);
         }
 
         private void TimerStatus_Tick(object sender, EventArgs e)
@@ -114,11 +113,14 @@ namespace Server
         {
             StringBuilder logBuilder = new StringBuilder();
             logBuilder.Append(DateTime.Now.ToString() + ": " + log + "\n");
+            TxtRichLog.AppendText(logBuilder.ToString());
+            /*
             Action<string> update = logs =>
             {
                 TxtRichLog.AppendText(logBuilder.ToString());
             };
             Invoke(update, logBuilder.ToString());
+            */
         }
     }
 }
