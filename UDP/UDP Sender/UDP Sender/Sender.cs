@@ -10,10 +10,10 @@ namespace UDP_Sender
     public partial class Sender : Form
     {
         UdpClient SendClient, FeedbackClient;
-
+        DateTime lastFeedback;
         bool isWorking;
 
-        Thread SendThread, FeedbackThread;
+        Thread SendThread, FeedbackThread, AwaitThread;
 
         public Sender()
         {
@@ -38,12 +38,24 @@ namespace UDP_Sender
 
         private void Feedback()
         {
-            IPEndPoint endpoint = new IPEndPoint(IPAddress.Any, int.Parse(TxtReceivePort.Text));
+            IPEndPoint endpoint = new IPEndPoint(IPAddress.Parse(TxtAddress.Text), int.Parse(TxtReceivePort.Text));
             while(true)
             {
                 byte[] dgram = FeedbackClient.Receive(ref endpoint);
                 string msg = Encoding.UTF8.GetString(dgram);
                 Log(msg);
+                lastFeedback = DateTime.Now;
+            }
+        }
+
+        private void AwaitMessage()
+        {
+            IPEndPoint endpoint = new IPEndPoint(IPAddress.Parse(TxtAddress.Text), int.Parse(TxtReceivePort.Text));
+            while (true)
+            {
+                Thread.Sleep(2000);
+                if (DateTime.Now - lastFeedback > TimeSpan.FromSeconds(2))
+                    Log("Нет ответа от клиента" + endpoint.ToString());
             }
         }
 
@@ -94,7 +106,14 @@ namespace UDP_Sender
                 };
                 FeedbackThread.Start();
 
+                AwaitThread = new Thread(AwaitMessage)
+                {
+                    IsBackground = true
+                };
+                AwaitThread.Start();
+
                 BtnConnect.Text = "Отключиться";
+                TxtAddress.ReadOnly = TxtReceivePort.ReadOnly = TxtSendPort.ReadOnly = true;
                 isWorking = true;
             }
             else
@@ -103,7 +122,11 @@ namespace UDP_Sender
                 SendClient.Close();
                 FeedbackThread.Abort();
                 FeedbackClient.Close();
+
+                AwaitThread.Abort();
+
                 BtnConnect.Text = "Подключиться";
+                TxtAddress.ReadOnly = TxtReceivePort.ReadOnly = TxtSendPort.ReadOnly = false;
                 isWorking = false;
             }
         }
