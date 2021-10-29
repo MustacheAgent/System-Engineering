@@ -71,7 +71,7 @@ namespace AsyncTcpLib
             }
             catch(SocketException ex)
             {
-                MessageBox.Show(ex.Message, "Ошибка запуска", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show(ex.Message, "Ошибка запуска сервера", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
@@ -84,15 +84,20 @@ namespace AsyncTcpLib
 
             try
             {
-                //_server.Disconnect(false);
-                //_server.Shutdown(SocketShutdown.Both);
                 _server.Close();
                 IsListening = false;
+
+                if (_client != null)
+                {
+                    //checkConnectionThread.Abort();
+                    _client.Close();
+                }   
+
                 OnServerStop?.Invoke(_server);
             }
             catch (SocketException ex)
             {
-                MessageBox.Show(ex.Message, "Ошибка остановки", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show(ex.Message, "Ошибка остановки сервера", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
@@ -109,14 +114,15 @@ namespace AsyncTcpLib
             }
             catch (SocketException ex)
             {
-                MessageBox.Show(ex.Message, "Ошибка отправки", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show(ex.Message, "Ошибка отправки сообщения сервером", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
             catch (Exception ex)
             {
-                MessageBox.Show(ex.Message, "Ошибка отправки", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show(ex.Message, "Ошибка отправки сообщения сервером", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
+        /*
         private void CheckConnection()
         {
             while (true)
@@ -135,6 +141,7 @@ namespace AsyncTcpLib
                 Thread.Sleep(1000);
             }
         }
+        */
 
         private void AcceptCallback(IAsyncResult ar)
         {
@@ -145,19 +152,12 @@ namespace AsyncTcpLib
                 _client.BeginReceive(_buffer, 0, _buffer.Length, SocketFlags.None, new AsyncCallback(ReceiveCallback), null);
                 OnClientConnected?.Invoke(_client);
 
-                checkConnectionThread = new Thread(new ThreadStart(CheckConnection))
-                {
-                    IsBackground = true
-                };
-
-                checkConnectionThread.Start();
-
                 if (IsListening)
                     _server.BeginAccept(new AsyncCallback(AcceptCallback), null);
             }
             catch(SocketException ex)
             {
-                MessageBox.Show(ex.Message, "Ошибка подключения", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show(ex.Message, "Ошибка подключения клиента", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
             catch(ObjectDisposedException)
             {
@@ -174,7 +174,7 @@ namespace AsyncTcpLib
             }
             catch(SocketException ex)
             {
-                MessageBox.Show(ex.Message, "Ошибка отправки", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show(ex.Message, "Ошибка отправки сообщения сервером", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
@@ -191,7 +191,7 @@ namespace AsyncTcpLib
                     Array.Resize(ref _buffer, receivedBytes);
                     string text = Encoding.ASCII.GetString(_buffer);
 
-                    if (!string.IsNullOrEmpty(text) /*&& !text.Equals("check")*/)
+                    if (!string.IsNullOrEmpty(text) && !text.Equals("check"))
                     {
                         OnMessageReceived?.Invoke(_client, text);
                     }
@@ -207,7 +207,7 @@ namespace AsyncTcpLib
                 if (ex.ErrorCode == 10054)
                     OnClientDisconnected?.Invoke(_client);
                 else
-                    MessageBox.Show(ex.Message, "Ошибка приема", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    MessageBox.Show(ex.Message, "Ошибка приема сообщения сервером", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 

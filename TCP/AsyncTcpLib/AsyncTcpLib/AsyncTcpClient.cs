@@ -16,7 +16,10 @@ namespace AsyncTcpLib
 
         public bool IsConnected
         {
-            get; private set;
+            get
+            {
+                return _server.Connected;
+            }
         }
 
         public IPEndPoint ServerAddress
@@ -27,6 +30,10 @@ namespace AsyncTcpLib
         public AsyncTcpClient() 
         {
             _server = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+            checkThread = new Thread(CheckConnection)
+            {
+                IsBackground = true
+            };
         }
 
         public AsyncTcpClient(Socket server)
@@ -36,32 +43,44 @@ namespace AsyncTcpLib
 
         public void Connect(string address, int port)
         {
-            if (IsConnected) return;
             try
             {
+                _server = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
                 ServerAddress = new IPEndPoint(IPAddress.Parse(address), port);
                 _server.BeginConnect(ServerAddress, new AsyncCallback(ConnectCallback), null);
             }
             catch(SocketException ex)
             {
-                MessageBox.Show(ex.Message, "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show(ex.Message, "Ошибка подключения к серверу", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        public void Connect(IPEndPoint address)
+        {
+            try
+            {
+                _server = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+                ServerAddress = address;
+                _server.BeginConnect(ServerAddress, new AsyncCallback(ConnectCallback), null);
+            }
+            catch (SocketException ex)
+            {
+                MessageBox.Show(ex.Message, "Ошибка подключения к серверу", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
         public void Disconnect()
         {
-            if (!IsConnected) return;
-
             try
             {
-                IsConnected = false;
+                checkThread.Abort();
                 _server.Close();
                 _server.Dispose();
                 _server = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
             }
             catch(SocketException ex)
             {
-                MessageBox.Show(ex.Message, "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show(ex.Message, "Ошибка отключения от сервера", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
             catch(ObjectDisposedException)
             {
@@ -78,11 +97,11 @@ namespace AsyncTcpLib
             }
             catch(SocketException ex)
             {
-                MessageBox.Show(ex.Message, "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show(ex.Message, "Ошибка отправки сообщения клиентом", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
             catch(Exception ex)
             {
-                MessageBox.Show(ex.Message, "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show(ex.Message, "Ошибка отправки сообщения клиентом", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
@@ -92,19 +111,29 @@ namespace AsyncTcpLib
             {
                 try
                 {
-                    //byte[] tmp = new byte[] { 0 };
                     byte[] tmp = Encoding.UTF8.GetBytes("check");
                     int sent = _server.Send(tmp);
                 }
-                catch (SocketException)
+                catch (SocketException ex)
                 {
-                    IsConnected = false;
-                    OnConnectionLost?.Invoke(_server);
-                    checkThread.Abort();
+                    if(ex.ErrorCode.Equals(10054))
+                    {
+                        OnConnectionLost?.Invoke(_server);
+                        checkThread.Abort();
+                    }
+                    else
+                    {
+                        MessageBox.Show(ex.Message, "Ошибка проверки подключения", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    }
                 }
 
                 Thread.Sleep(1000);
             }
+        }
+
+        private void Reconnect()
+        {
+
         }
 
         private void ConnectCallback(IAsyncResult ar)
@@ -112,22 +141,38 @@ namespace AsyncTcpLib
             try
             {
                 _server.EndConnect(ar);
-                IsConnected = true;
                 OnConnected?.Invoke(_server);
+
+                checkThread = new Thread(CheckConnection)
+                {
+                    IsBackground = true
+                };
+                checkThread.Start();
 
                 _buffer = new byte[_server.SendBufferSize];
                 _server.BeginReceive(_buffer, 0, _buffer.Length, SocketFlags.None, new AsyncCallback(ReceiveMessageCallback), null);
             }
             catch (SocketException ex)
             {
+                OnReconnectAttempt?.Invoke(ServerAddress);
+                _server.Close();
+                Connect(ServerAddress);
+                /*
                 if (ex.ErrorCode == 10061)
+                {
                     OnRefused?.Invoke(ServerAddress);
+                }   
                 else
-                    MessageBox.Show(ex.Message, "Ошибка подключения", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                {
+                    OnReconnectAttempt?.Invoke(ServerAddress);
+                    _server.Close();
+                    _server.BeginConnect(ServerAddress, new AsyncCallback(ConnectCallback), null);
+                }
+                */
             }
             catch (Exception ex)
             {
-                MessageBox.Show(ex.Message, "Ошибка подключения", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show(ex.Message, "Ошибка подключения к серверу", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
@@ -139,7 +184,7 @@ namespace AsyncTcpLib
             }
             catch(SocketException ex)
             {
-                MessageBox.Show(ex.Message, "Ошибка отправки", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show(ex.Message, "Ошибка отправки сообщения клиентом", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
@@ -166,11 +211,14 @@ namespace AsyncTcpLib
             }
             catch(SocketException ex)
             {
-                MessageBox.Show(ex.Message, "Ошибка приема", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                if(ex.ErrorCode.Equals(10054))
+                    return;
+                else
+                    MessageBox.Show(ex.Message, "Ошибка приема сообщения клиентом", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
             catch(Exception ex)
             {
-                MessageBox.Show(ex.Message, "Ошибка приема", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show(ex.Message, "Ошибка приема сообщения клиентом", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
@@ -185,5 +233,8 @@ namespace AsyncTcpLib
 
         public delegate void OnLostConnectionHandler(Socket server);
         public event OnLostConnectionHandler OnConnectionLost;
+
+        public delegate void OnReconnectAttemptHandler(IPEndPoint serverAddr);
+        public event OnReconnectAttemptHandler OnReconnectAttempt;
     }
 }

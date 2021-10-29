@@ -21,9 +21,11 @@ namespace Client
             BarServer.Items[0].Text = "Нет подключения";
 
             client = new AsyncTcpClient();
+            client.OnConnected += Client_OnConnected;
             client.OnMessageReceived += Client_OnMessageReceived;
             client.OnRefused += Client_OnRefused;
             client.OnConnectionLost += Client_OnConnectionLost;
+            client.OnReconnectAttempt += Client_OnReconnectAttempt;
         }
 
         private void BtnConnect_Click(object sender, EventArgs e)
@@ -81,7 +83,7 @@ namespace Client
             logBuilder.Append(DateTime.Now.ToString() + ": " + log + "\n");
             Action<string> update = logs =>
             {
-                TxtRichMessage?.AppendText(logBuilder.ToString());
+                TxtRichLog.AppendText(logBuilder.ToString());
             };
 
             try
@@ -94,6 +96,7 @@ namespace Client
             }
         }
 
+        /*
         private bool Ping(string address)
         {
             PingReply pingReply;
@@ -101,6 +104,7 @@ namespace Client
                 pingReply = ping.Send(address);
             return pingReply.Status == IPStatus.Success;
         }
+        */
 
         private void TimerStatus_Tick(object sender, EventArgs e)
         {
@@ -108,6 +112,11 @@ namespace Client
                 BarServer.Items[0].Text = "Есть подключение";
             else
                 BarServer.Items[0].Text = "Нет подключения";
+        }
+
+        private void Client_OnConnected(Socket server)
+        {
+            Log("Подключен к серверу " + server.RemoteEndPoint.ToString());
         }
 
         private void Client_OnMessageReceived(Socket server, string message)
@@ -134,6 +143,13 @@ namespace Client
                 BtnConnect.Text = "Подключиться";
                 TxtAddress.ReadOnly = TxtPort.ReadOnly = false;
             });
+
+            client.Connect(TxtAddress.Text, int.Parse(TxtPort.Text));
+        }
+
+        private void Client_OnReconnectAttempt(IPEndPoint serverAddr)
+        {
+            Log("Попытка переподключения к серверу " + serverAddr.ToString());
         }
     }
 }
