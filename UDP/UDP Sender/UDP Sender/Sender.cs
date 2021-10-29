@@ -55,7 +55,7 @@ namespace UDP_Sender
             {
                 Thread.Sleep(2000);
                 if (DateTime.Now - lastFeedback > TimeSpan.FromSeconds(2))
-                    Log("Нет ответа от клиента" + endpoint.ToString());
+                    Log("Нет ответа от клиента " + endpoint.ToString());
             }
         }
 
