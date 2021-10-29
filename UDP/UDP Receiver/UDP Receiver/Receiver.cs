@@ -27,7 +27,7 @@ namespace UDP_Receiver
 
         private void Receive()
         {
-            IPEndPoint endpoint = new IPEndPoint(IPAddress.Any, int.Parse(TxtReceivePort.Text));
+            IPEndPoint endpoint = new IPEndPoint(IPAddress.Parse(TxtAddress.Text), int.Parse(TxtReceivePort.Text));
             while(true)
             {
                 byte[] dgram = ReceiveClient.Receive(ref endpoint);
@@ -95,6 +95,7 @@ namespace UDP_Receiver
             {
                 ReceiveThread.Abort();
                 ReceiveClient.Close();
+                FeedbackClient.Close();
                 BtnConnect.Text = "Подключиться";
                 isWorking = false;
             }
