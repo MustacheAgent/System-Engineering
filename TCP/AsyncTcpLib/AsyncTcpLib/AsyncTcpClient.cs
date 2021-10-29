@@ -131,11 +131,6 @@ namespace AsyncTcpLib
             }
         }
 
-        private void Reconnect()
-        {
-
-        }
-
         private void ConnectCallback(IAsyncResult ar)
         {
             try

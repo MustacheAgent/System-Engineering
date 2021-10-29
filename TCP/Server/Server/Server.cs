@@ -24,6 +24,7 @@ namespace Server
 
             server = new AsyncTcpServer(int.Parse(TxtPort.Text));
             server.OnClientConnected += Server_OnClientConnected;
+            server.OnClientDisconnected += Server_OnClientDisconnected;
             server.OnMessageSent += Server_OnMessageSent;
             server.OnMessageReceived += Server_OnMessageReceived;
         }
@@ -92,13 +93,16 @@ namespace Server
         private void Server_OnMessageSent(Socket client)
         {
             Invoke((Action<string>)Log, "Клиенту " + client.RemoteEndPoint.ToString() + " отправлено сообщение: " + message);
-            //Log("Клиенту " + client.RemoteEndPoint.ToString() + " отправлено сообщение: " + TxtRichMessage.Text);
         }
 
         private void Server_OnMessageReceived(Socket client, string message)
         {
             Invoke((Action<string>)Log, "От клиента " + client.RemoteEndPoint.ToString() + " получено сообщение: " + message);
-            //Log("От клиента " + client.RemoteEndPoint.ToString() + " получено сообщение: " + message);
+        }
+
+        private void Server_OnClientDisconnected(Socket client)
+        {
+            Invoke((Action<string>)Log, "Клиент " + client.RemoteEndPoint.ToString() + " отсоединился от сервера.");
         }
 
         private void TimerStatus_Tick(object sender, EventArgs e)

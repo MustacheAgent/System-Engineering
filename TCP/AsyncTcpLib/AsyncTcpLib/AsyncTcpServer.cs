@@ -62,7 +62,6 @@ namespace AsyncTcpLib
             try
             {
                 _server = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-                _server.NoDelay = true;
                 _server.Bind(new IPEndPoint(0, Port));
                 _server.Listen(0);
                 _server.BeginAccept(new AsyncCallback(AcceptCallback), null);
@@ -85,11 +84,12 @@ namespace AsyncTcpLib
             try
             {
                 _server.Close();
+                //checkConnectionThread.Abort();
                 IsListening = false;
 
                 if (_client != null)
                 {
-                    //checkConnectionThread.Abort();
+                    checkConnectionThread.Abort();
                     _client.Close();
                 }   
 
@@ -122,26 +122,19 @@ namespace AsyncTcpLib
             }
         }
 
-        /*
         private void CheckConnection()
         {
             while (true)
             {
-                try
+                if (!_client.Connected)
                 {
-                    //byte[] tmp = new byte[] { 0 };
-                    byte[] tmp = Encoding.UTF8.GetBytes("check");
-                    int sent = _client.Send(tmp);
-                }
-                catch (SocketException ex)
-                {
-                    MessageBox.Show(ex.Message, "Ошибка проверки подключения", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    //OnClientDisconnected?.Invoke(_client);
+                    checkConnectionThread.Abort();
                 }
 
                 Thread.Sleep(1000);
             }
         }
-        */
 
         private void AcceptCallback(IAsyncResult ar)
         {
@@ -151,6 +144,12 @@ namespace AsyncTcpLib
                 _buffer = new byte[_server.ReceiveBufferSize];
                 _client.BeginReceive(_buffer, 0, _buffer.Length, SocketFlags.None, new AsyncCallback(ReceiveCallback), null);
                 OnClientConnected?.Invoke(_client);
+
+                checkConnectionThread = new Thread(CheckConnection)
+                {
+                    IsBackground = true
+                };
+                checkConnectionThread.Start();
 
                 if (IsListening)
                     _server.BeginAccept(new AsyncCallback(AcceptCallback), null);
@@ -205,7 +204,8 @@ namespace AsyncTcpLib
             catch(SocketException ex)
             {
                 if (ex.ErrorCode == 10054)
-                    OnClientDisconnected?.Invoke(_client);
+                    //OnClientDisconnected?.Invoke(_client);
+                    return;
                 else
                     MessageBox.Show(ex.Message, "Ошибка приема сообщения сервером", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
