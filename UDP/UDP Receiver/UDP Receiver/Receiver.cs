@@ -9,8 +9,7 @@ namespace UDP_Receiver
 {
     public partial class Receiver : Form
     {
-        UdpClient ReceiveClient;
-        IPEndPoint FeedbackAddress;
+        UdpClient ReceiveClient, FeedbackClient;
 
         bool isWorking;
 
@@ -34,7 +33,16 @@ namespace UDP_Receiver
                 byte[] dgram = ReceiveClient.Receive(ref endpoint);
                 string msg = Encoding.UTF8.GetString(dgram);
                 Log(msg);
+                if (msg.Equals("check"))
+                    SendFeedback();
             }
+        }
+
+        private void SendFeedback()
+        {
+            IPEndPoint feedback = new IPEndPoint(IPAddress.Parse(TxtAddress.Text), int.Parse(TxtSendPort.Text));
+            byte[] dgram = Encoding.UTF8.GetBytes("ok");
+            FeedbackClient.Send(dgram, dgram.Length, feedback);
         }
 
         private void Log(string log)
@@ -71,12 +79,13 @@ namespace UDP_Receiver
             if (!isWorking)
             {
                 ReceiveClient = new UdpClient(int.Parse(TxtReceivePort.Text));
-                FeedbackAddress = new IPEndPoint(IPAddress.Parse(TxtAddress.Text), int.Parse(TxtSendPort.Text));
 
                 ReceiveThread = new Thread(Receive)
                 {
                     IsBackground = true
                 };
+
+                FeedbackClient = new UdpClient(int.Parse(TxtSendPort.Text));
 
                 ReceiveThread.Start();
                 BtnConnect.Text = "Отключиться";
@@ -85,6 +94,7 @@ namespace UDP_Receiver
             else
             {
                 ReceiveThread.Abort();
+                ReceiveClient.Close();
                 BtnConnect.Text = "Подключиться";
                 isWorking = false;
             }
