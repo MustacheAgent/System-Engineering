@@ -66,7 +66,7 @@ namespace AsyncTcpLib
                 _server.Listen(0);
                 _server.BeginAccept(new AsyncCallback(AcceptCallback), null);
                 IsListening = true;
-                OnServerStart?.Invoke(_server);
+                if (OnServerStart != null) OnServerStart.Invoke(_server);
             }
             catch(SocketException ex)
             {
@@ -92,8 +92,7 @@ namespace AsyncTcpLib
                     checkConnectionThread.Abort();
                     _client.Close();
                 }   
-
-                OnServerStop?.Invoke(_server);
+                if (OnServerStop != null) OnServerStop.Invoke(_server);
             }
             catch (SocketException ex)
             {
@@ -143,7 +142,7 @@ namespace AsyncTcpLib
                 _client = _server.EndAccept(ar);
                 _buffer = new byte[_server.ReceiveBufferSize];
                 _client.BeginReceive(_buffer, 0, _buffer.Length, SocketFlags.None, new AsyncCallback(ReceiveCallback), null);
-                OnClientConnected?.Invoke(_client);
+                if (OnClientConnected != null) OnClientConnected.Invoke(_client);
 
                 checkConnectionThread = new Thread(CheckConnection)
                 {
@@ -169,7 +168,7 @@ namespace AsyncTcpLib
             try
             {
                 _client.EndSend(ar);
-                OnMessageSent?.Invoke(_client);
+                if(OnMessageSent != null) OnMessageSent.Invoke(_client);
             }
             catch(SocketException ex)
             {
@@ -192,7 +191,7 @@ namespace AsyncTcpLib
 
                     if (!string.IsNullOrEmpty(text) && !text.Equals("check"))
                     {
-                        OnMessageReceived?.Invoke(_client, text);
+                        if(OnMessageReceived != null) OnMessageReceived.Invoke(_client, text);
                     }
 
                     Array.Resize(ref _buffer, _client.ReceiveBufferSize);

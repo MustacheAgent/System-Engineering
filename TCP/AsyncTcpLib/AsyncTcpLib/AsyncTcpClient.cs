@@ -12,7 +12,7 @@ namespace AsyncTcpLib
         private Socket _server;
         private byte[] _buffer;
 
-        Thread checkThread;
+        Thread checkThread, waitThread;
 
         public bool IsConnected
         {
@@ -118,7 +118,7 @@ namespace AsyncTcpLib
                 {
                     if(ex.ErrorCode.Equals(10054))
                     {
-                        OnConnectionLost?.Invoke(_server);
+                        if(OnConnectionLost != null) OnConnectionLost.Invoke(_server);
                         checkThread.Abort();
                     }
                     else
@@ -136,7 +136,7 @@ namespace AsyncTcpLib
             try
             {
                 _server.EndConnect(ar);
-                OnConnected?.Invoke(_server);
+                if(OnConnected != null) OnConnected.Invoke(_server);
 
                 checkThread = new Thread(CheckConnection)
                 {
@@ -149,7 +149,7 @@ namespace AsyncTcpLib
             }
             catch (SocketException ex)
             {
-                OnReconnectAttempt?.Invoke(ServerAddress);
+                if(OnReconnectAttempt != null) OnReconnectAttempt.Invoke(ServerAddress);
                 _server.Close();
                 Connect(ServerAddress);
                 /*
@@ -196,7 +196,7 @@ namespace AsyncTcpLib
                     string text = Encoding.UTF8.GetString(_buffer);
 
                     if (!text.Equals("check"))
-                        OnMessageReceived?.Invoke(_server, text);
+                        if(OnMessageReceived != null) OnMessageReceived.Invoke(_server, text);
 
                     Array.Resize(ref _buffer, _server.SendBufferSize);
 
@@ -209,7 +209,18 @@ namespace AsyncTcpLib
                 if(ex.ErrorCode.Equals(10054))
                     return;
                 else
-                    MessageBox.Show(ex.Message, "Ошибка приема сообщения клиентом", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                {
+                    if (OnReconnectAttempt != null) OnReconnectAttempt.Invoke(ServerAddress);
+                    try
+                    {
+                        _server.Close();
+                    }
+                    catch(Exception)
+                    {
+
+                    }
+                    Connect(ServerAddress);
+                }
             }
             catch(Exception ex)
             {
